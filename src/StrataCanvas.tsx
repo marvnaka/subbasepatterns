@@ -19,6 +19,7 @@ export const StrataCanvas = React.forwardRef<SVGSVGElement, StrataCanvasProps>(
     const {
       seed,
       density,
+      lineOpacity,
       patternAssignment,
       showDepthNumbers,
       accentLayerEnabled,
@@ -30,6 +31,7 @@ export const StrataCanvas = React.forwardRef<SVGSVGElement, StrataCanvasProps>(
 
     const illWidth = canvasWidth * 0.72;
     const illX = (canvasWidth - illWidth) / 2;
+    const opacity = lineOpacity / 100;
 
     const { positions, depthLabels } = useMemo(
       () => calculateLayerPositions(layers, depth, tension, seed, canvasHeight),
@@ -65,7 +67,7 @@ export const StrataCanvas = React.forwardRef<SVGSVGElement, StrataCanvasProps>(
     for (let i = 0; i < positions.length; i++) {
       const y = positions[i];
       const isAccent = accentLayerEnabled && i === accentLayerIndex;
-      const strokeColor = isAccent ? '#E8E0D0' : '#3A3A3A';
+      const strokeColor = isAccent ? '#E8E0D0' : '#FFFFFF';
       const strokeWidth = isAccent ? 1 : 0.5;
 
       lineElements.push(
@@ -90,7 +92,8 @@ export const StrataCanvas = React.forwardRef<SVGSVGElement, StrataCanvasProps>(
             dominantBaseline="middle"
             fontFamily="'Inter Mono', monospace"
             fontSize={7}
-            fill="#2A2A2A"
+            fill="#FFFFFF"
+            opacity={0.25}
           >
             {depthLabels[i]}
           </text>,
@@ -107,8 +110,10 @@ export const StrataCanvas = React.forwardRef<SVGSVGElement, StrataCanvasProps>(
         style={{ display: 'block' }}
       >
         <rect width={canvasWidth} height={canvasHeight} fill="#050505" />
-        {patternElements}
-        {lineElements}
+        <g opacity={opacity}>
+          {patternElements}
+          {lineElements}
+        </g>
         {labelElements}
       </svg>
     );
@@ -121,6 +126,7 @@ export function exportSVGString(config: StrataConfig, canvasWidth: number, canva
   const {
     seed,
     density,
+    lineOpacity,
     patternAssignment,
     showDepthNumbers,
     accentLayerEnabled,
@@ -132,6 +138,7 @@ export function exportSVGString(config: StrataConfig, canvasWidth: number, canva
 
   const illWidth = canvasWidth * 0.72;
   const illX = (canvasWidth - illWidth) / 2;
+  const opacity = lineOpacity / 100;
 
   const { positions, depthLabels } = calculateLayerPositions(layers, depth, tension, seed, canvasHeight);
 
@@ -152,30 +159,26 @@ export function exportSVGString(config: StrataConfig, canvasWidth: number, canva
 
     if (patternType === 'DOTS') {
       const spacing = Math.max(lmap(effectiveDensity, 1, 10, 20, 3), 1);
-      patDefs += `<pattern id="${patId}" x="${illX}" y="${y}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse"><circle cx="${(spacing / 2).toFixed(2)}" cy="${(spacing / 2).toFixed(2)}" r="0.4" fill="#3A3A3A"/></pattern>`;
+      patDefs += `<pattern id="${patId}" x="${illX}" y="${y}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse"><circle cx="${(spacing / 2).toFixed(2)}" cy="${(spacing / 2).toFixed(2)}" r="0.4" fill="#FFFFFF"/></pattern>`;
+      patBody += `<rect x="${illX.toFixed(2)}" y="${y.toFixed(2)}" width="${illWidth.toFixed(2)}" height="${zoneH.toFixed(2)}" fill="url(#${patId})"/>`;
+    } else if (patternType === 'STIPPLE') {
+      const spacing = Math.max(lmap(effectiveDensity, 1, 10, 20, 4), 2);
+      const rowH = spacing * Math.sqrt(3) / 2;
+      const r = Math.max(spacing * 0.18, 0.4);
+      patDefs += `<pattern id="${patId}" x="${illX.toFixed(2)}" y="${y.toFixed(2)}" width="${spacing.toFixed(2)}" height="${(rowH * 2).toFixed(2)}" patternUnits="userSpaceOnUse"><circle cx="0" cy="0" r="${r.toFixed(2)}" fill="#FFFFFF"/><circle cx="${spacing.toFixed(2)}" cy="0" r="${r.toFixed(2)}" fill="#FFFFFF"/><circle cx="${(spacing / 2).toFixed(2)}" cy="${rowH.toFixed(2)}" r="${r.toFixed(2)}" fill="#FFFFFF"/><circle cx="0" cy="${(rowH * 2).toFixed(2)}" r="${r.toFixed(2)}" fill="#FFFFFF"/><circle cx="${spacing.toFixed(2)}" cy="${(rowH * 2).toFixed(2)}" r="${r.toFixed(2)}" fill="#FFFFFF"/></pattern>`;
       patBody += `<rect x="${illX.toFixed(2)}" y="${y.toFixed(2)}" width="${illWidth.toFixed(2)}" height="${zoneH.toFixed(2)}" fill="url(#${patId})"/>`;
     } else if (patternType === 'DIAGONAL') {
       const spacing = Math.max(lmap(effectiveDensity, 1, 10, 30, 4), 1.5);
-      patDefs += `<pattern id="${patId}" x="${illX.toFixed(2)}" y="${y.toFixed(2)}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse"><line x1="${-spacing}" y1="${spacing}" x2="${spacing}" y2="${-spacing}" stroke="#3A3A3A" stroke-width="0.4"/><line x1="0" y1="${spacing * 2}" x2="${spacing * 2}" y2="0" stroke="#3A3A3A" stroke-width="0.4"/></pattern>`;
+      patDefs += `<pattern id="${patId}" x="${illX.toFixed(2)}" y="${y.toFixed(2)}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse"><line x1="${-spacing}" y1="${spacing}" x2="${spacing}" y2="${-spacing}" stroke="#FFFFFF" stroke-width="0.4"/><line x1="0" y1="${spacing * 2}" x2="${spacing * 2}" y2="0" stroke="#FFFFFF" stroke-width="0.4"/></pattern>`;
       patBody += `<rect x="${illX.toFixed(2)}" y="${y.toFixed(2)}" width="${illWidth.toFixed(2)}" height="${zoneH.toFixed(2)}" fill="url(#${patId})"/>`;
     } else if (patternType === 'CROSS-HATCH') {
       const spacing = Math.max(lmap(effectiveDensity, 1, 10, 30, 4), 1.5);
-      patDefs += `<pattern id="${patId}" x="${illX.toFixed(2)}" y="${y.toFixed(2)}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse"><line x1="${-spacing}" y1="${spacing}" x2="${spacing}" y2="${-spacing}" stroke="#3A3A3A" stroke-width="0.4"/><line x1="0" y1="${spacing * 2}" x2="${spacing * 2}" y2="0" stroke="#3A3A3A" stroke-width="0.4"/><line x1="0" y1="0" x2="${spacing * 2}" y2="${spacing * 2}" stroke="#3A3A3A" stroke-width="0.4"/><line x1="${-spacing}" y1="0" x2="${spacing}" y2="${spacing * 2}" stroke="#3A3A3A" stroke-width="0.4"/></pattern>`;
+      patDefs += `<pattern id="${patId}" x="${illX.toFixed(2)}" y="${y.toFixed(2)}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse"><line x1="${-spacing}" y1="${spacing}" x2="${spacing}" y2="${-spacing}" stroke="#FFFFFF" stroke-width="0.4"/><line x1="0" y1="${spacing * 2}" x2="${spacing * 2}" y2="0" stroke="#FFFFFF" stroke-width="0.4"/><line x1="0" y1="0" x2="${spacing * 2}" y2="${spacing * 2}" stroke="#FFFFFF" stroke-width="0.4"/><line x1="${-spacing}" y1="0" x2="${spacing}" y2="${spacing * 2}" stroke="#FFFFFF" stroke-width="0.4"/></pattern>`;
       patBody += `<rect x="${illX.toFixed(2)}" y="${y.toFixed(2)}" width="${illWidth.toFixed(2)}" height="${zoneH.toFixed(2)}" fill="url(#${patId})"/>`;
     } else if (patternType === 'WOVEN') {
       const spacing = Math.max(lmap(effectiveDensity, 1, 10, 8, 1), 0.5);
       for (let cy = y + spacing; cy < y + zoneH; cy += spacing) {
-        patBody += `<line x1="${illX.toFixed(2)}" y1="${cy.toFixed(2)}" x2="${(illX + illWidth).toFixed(2)}" y2="${cy.toFixed(2)}" stroke="#3A3A3A" stroke-width="0.3"/>`;
-      }
-    } else if (patternType === 'STIPPLE') {
-      const rng = makeRng(zoneSeed ^ 0xabcdef12);
-      const area = illWidth * zoneH;
-      const count = Math.round(lmap(effectiveDensity, 1, 10, 20, 200) * (area / 1000));
-      for (let j = 0; j < count; j++) {
-        const cx = illX + rng.next() * illWidth;
-        const cy = y + rng.next() * zoneH;
-        const r = rng.range(0.3, 0.8);
-        patBody += `<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" fill="#3A3A3A"/>`;
+        patBody += `<line x1="${illX.toFixed(2)}" y1="${cy.toFixed(2)}" x2="${(illX + illWidth).toFixed(2)}" y2="${cy.toFixed(2)}" stroke="#FFFFFF" stroke-width="0.3"/>`;
       }
     } else if (patternType === 'NOISE') {
       const rng = makeRng(zoneSeed ^ 0x99887766);
@@ -184,7 +187,7 @@ export function exportSVGString(config: StrataConfig, canvasWidth: number, canva
       for (let j = 0; j < count; j++) {
         const rx = illX + rng.next() * illWidth;
         const ry = y + rng.next() * zoneH;
-        patBody += `<rect x="${rx.toFixed(2)}" y="${ry.toFixed(2)}" width="1" height="1" fill="#3A3A3A" opacity="0.35"/>`;
+        patBody += `<rect x="${rx.toFixed(2)}" y="${ry.toFixed(2)}" width="1" height="1" fill="#FFFFFF" opacity="0.35"/>`;
       }
     }
   }
@@ -192,12 +195,12 @@ export function exportSVGString(config: StrataConfig, canvasWidth: number, canva
   for (let i = 0; i < positions.length; i++) {
     const y = positions[i];
     const isAccent = accentLayerEnabled && i === accentLayerIndex;
-    const strokeColor = isAccent ? '#E8E0D0' : '#3A3A3A';
+    const strokeColor = isAccent ? '#E8E0D0' : '#FFFFFF';
     const strokeWidth = isAccent ? 1 : 0.5;
     lineBody += `<line x1="${illX.toFixed(2)}" y1="${y.toFixed(2)}" x2="${(illX + illWidth).toFixed(2)}" y2="${y.toFixed(2)}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
 
     if (showDepthNumbers) {
-      labelBody += `<text x="${(illX - 8).toFixed(1)}" y="${(y + 0.5).toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-family="'Inter Mono', monospace" font-size="7" fill="#2A2A2A">${depthLabels[i]}</text>`;
+      labelBody += `<text x="${(illX - 8).toFixed(1)}" y="${(y + 0.5).toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-family="'Inter Mono', monospace" font-size="7" fill="#FFFFFF" opacity="0.25">${depthLabels[i]}</text>`;
     }
   }
 
@@ -205,8 +208,10 @@ export function exportSVGString(config: StrataConfig, canvasWidth: number, canva
 <svg xmlns="http://www.w3.org/2000/svg" width="${canvasWidth}" height="${canvasHeight}" viewBox="0 0 ${canvasWidth} ${canvasHeight}">
   <rect width="${canvasWidth}" height="${canvasHeight}" fill="none"/>
   <defs>${patDefs}</defs>
-  ${patBody}
-  ${lineBody}
+  <g opacity="${opacity}">
+    ${patBody}
+    ${lineBody}
+  </g>
   ${labelBody}
 </svg>`;
 }

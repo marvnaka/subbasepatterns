@@ -1,6 +1,6 @@
 import type { PresetName, StrataConfig } from './types';
 
-type PresetPartial = Omit<StrataConfig, 'seed' | 'patternAssignment' | 'showDepthNumbers' | 'accentLayerEnabled' | 'accentLayerIndex' | 'format'>;
+type PresetPartial = Omit<StrataConfig, 'seed' | 'patternAssignment' | 'lineOpacity' | 'showDepthNumbers' | 'accentLayerEnabled' | 'accentLayerIndex' | 'format'>;
 
 export const PRESETS: Record<PresetName, PresetPartial> = {
   'SURFACE SCAN': { depth: 2, layers: 5,  tension: 4, density: 3 },

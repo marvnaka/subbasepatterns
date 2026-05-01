@@ -23,6 +23,7 @@ function getInitialConfig(): StrataConfig {
     tension: 5,
     density: 5,
     patternAssignment: initPatternAssignment(layers, seed),
+    lineOpacity: 100,
     showDepthNumbers: true,
     accentLayerEnabled: false,
     accentLayerIndex: 0,

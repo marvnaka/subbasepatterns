@@ -26,6 +26,7 @@ export interface StrataConfig {
   tension: number;     // 1–10
   density: number;     // 1–10
   patternAssignment: PatternType[];
+  lineOpacity: number;   // 50–100
   showDepthNumbers: boolean;
   accentLayerEnabled: boolean;
   accentLayerIndex: number; // 0-based

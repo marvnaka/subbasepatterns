@@ -382,6 +382,13 @@ export function Sidebar({
 
         {/* DISPLAY */}
         <Section title="§ DISPLAY">
+          <SliderRow
+            label="§ — OPACITY"
+            min={50}
+            max={100}
+            value={config.lineOpacity}
+            onChange={(v) => update({ lineOpacity: v })}
+          />
           <Toggle
             label="§ 06 — DEPTH NUMBERS"
             value={config.showDepthNumbers}
