@@ -104,8 +104,9 @@ export const IsoCanvas = React.forwardRef<SVGSVGElement, IsoCanvasProps>(
       const topStrokeW  = isAccent ? Math.max(lineWeight + 0.5, 1) : lineWeight;
       const rightBg     = isAccent ? '#181818' : '#111111';
 
-      const labelX = frontFace[3].x;
-      const labelY = (frontFace[0].y + frontFace[3].y) / 2;
+      // rightFace[0] = p(W, Yb, 0) — frontmost right-column point, maximum screen x
+      const labelX = rightFace[0].x;
+      const labelY = (rightFace[0].y + rightFace[3].y) / 2;
 
       blockEls.push(
         <g key={`block-${idx}`}>
@@ -120,9 +121,9 @@ export const IsoCanvas = React.forwardRef<SVGSVGElement, IsoCanvasProps>(
           {patternEl && <g clipPath={`url(#${clipId})`}>{patternEl}</g>}
           <polygon points={polyPts(topFace)} fill="none" stroke={topStroke} strokeWidth={topStrokeW} />
           {showDepthNumbers && (
-            <text x={labelX - 4} y={labelY}
-              textAnchor="end" dominantBaseline="middle"
-              fontFamily="'Inter Mono', monospace" fontSize={7} fill="#2A2A2A">
+            <text x={labelX + 4} y={labelY}
+              textAnchor="start" dominantBaseline="middle"
+              fontFamily="'Inter Mono', monospace" fontSize={7} fill="#FFFFFF" opacity={0.25}>
               {depthLabels[idx]}
             </text>
           )}
@@ -271,9 +272,9 @@ export function exportISOSVGString(
     body += `<polygon points="${poly(topFace)}" fill="none" stroke="${topStroke}" stroke-width="${topStrokeW}"/>`;
 
     if (showDepthNumbers) {
-      const labelX = frontFace[3].x;
-      const labelY = (frontFace[0].y + frontFace[3].y) / 2;
-      labels += `<text x="${(labelX - 4).toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-family="'Inter Mono', monospace" font-size="7" fill="#2A2A2A">${depthLabels[idx]}</text>`;
+      const labelX = rightFace[0].x;
+      const labelY = (rightFace[0].y + rightFace[3].y) / 2;
+      labels += `<text x="${(labelX + 4).toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="start" dominant-baseline="middle" font-family="'Inter Mono', monospace" font-size="7" fill="#FFFFFF" opacity="0.25">${depthLabels[idx]}</text>`;
     }
   }
 
