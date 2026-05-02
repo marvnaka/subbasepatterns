@@ -52,3 +52,19 @@ export function calculateLayerPositions(
 
   return { positions, gaps, depthLabels, totalHeight: tensionHeight, topOffset };
 }
+
+// Stroke weight for layer/zone index i out of `count` total, given thickness and variable taper.
+// index=0 = surface (thin end), index=count-1 = core (thick end).
+// base(thickness=1) ≈ 0.5px, base(thickness=10) = 4.0px.
+// Variable taper: 1× at surface → 3× at core.
+export function strokeWeightAt(
+  index: number,
+  count: number,
+  thickness: number,
+  variable: boolean,
+): number {
+  const base = lmap(thickness, 1, 10, 0.5, 4.0);
+  if (!variable || count <= 1) return base;
+  const t = index / (count - 1);
+  return base * (1 + t * 2);
+}

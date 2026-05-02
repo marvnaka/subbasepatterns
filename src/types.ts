@@ -1,19 +1,15 @@
 export type PatternType =
   | 'EMPTY'
   | 'DOTS'
-  | 'STIPPLE'
   | 'DIAGONAL'
   | 'CROSS-HATCH'
-  | 'NOISE'
   | 'WOVEN';
 
 export const PATTERN_TYPES: PatternType[] = [
   'EMPTY',
   'DOTS',
-  'STIPPLE',
   'DIAGONAL',
   'CROSS-HATCH',
-  'NOISE',
   'WOVEN',
 ];
 
@@ -27,7 +23,9 @@ export interface StrataConfig {
   tension: number;     // 1–10
   density: number;     // 1–10
   patternAssignment: PatternType[];
-  lineOpacity: number;   // 50–100
+  lineOpacity: number;     // 50–100
+  thickness: number;       // 1–10
+  variableWeight: boolean; // taper from thin (surface) to thick (core)
   viewMode: ViewMode;
   extrusion: number;   // 1–10, ISO only
   showDepthNumbers: boolean;

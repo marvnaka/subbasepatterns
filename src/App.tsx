@@ -25,6 +25,8 @@ function getInitialConfig(): StrataConfig {
     density: 5,
     patternAssignment: initPatternAssignment(layers, seed),
     lineOpacity: 100,
+    thickness: 1,
+    variableWeight: false,
     viewMode: '2D',
     extrusion: 5,
     showDepthNumbers: true,

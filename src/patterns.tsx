@@ -1,6 +1,5 @@
 import React from 'react';
 import type { PatternType } from './types';
-import { makeRng } from './prng';
 
 function lmap(value: number, inMin: number, inMax: number, outMin: number, outMax: number): number {
   return outMin + ((value - inMin) / (inMax - inMin)) * (outMax - outMin);
@@ -10,6 +9,7 @@ export interface ZonePatternProps {
   id: string;
   type: PatternType;
   density: number;
+  weight: number;    // stroke weight — scales dot radius and line widths
   x: number;
   y: number;
   width: number;
@@ -19,81 +19,32 @@ export interface ZonePatternProps {
 }
 
 export function renderZonePattern(props: ZonePatternProps): React.ReactElement | null {
-  const { id, type, density, x, y, width, height, seed, isCore } = props;
+  const { id, type, density, weight, x, y, width, height, isCore } = props;
   const effectiveDensity = isCore ? Math.min(density * 1.5, 10) : density;
 
   if (type === 'EMPTY' || height <= 0) return null;
 
   switch (type) {
-    case 'DOTS':
-      return renderDots(id, effectiveDensity, x, y, width, height);
-    case 'STIPPLE':
-      return renderStipple(id, effectiveDensity, x, y, width, height);
-    case 'DIAGONAL':
-      return renderDiagonal(id, effectiveDensity, x, y, width, height);
-    case 'CROSS-HATCH':
-      return renderCrossHatch(id, effectiveDensity, x, y, width, height);
-    case 'NOISE':
-      return renderNoise(id, effectiveDensity, x, y, width, height, seed);
-    case 'WOVEN':
-      return renderWoven(id, effectiveDensity, x, y, width, height);
-    default:
-      return null;
+    case 'DOTS':      return renderDots(id, effectiveDensity, weight, x, y, width, height);
+    case 'DIAGONAL':  return renderDiagonal(id, effectiveDensity, weight, x, y, width, height);
+    case 'CROSS-HATCH': return renderCrossHatch(id, effectiveDensity, weight, x, y, width, height);
+    case 'WOVEN':     return renderWoven(id, effectiveDensity, weight, x, y, width, height);
+    default:          return null;
   }
 }
 
 function renderDots(
-  id: string,
-  density: number,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
+  id: string, density: number, weight: number,
+  x: number, y: number, width: number, height: number,
 ): React.ReactElement {
   const spacing = Math.max(lmap(density, 1, 10, 20, 3), 1);
+  const r = Math.max(weight * 0.45, 0.3);
   const patId = `pat-${id}`;
   return (
     <g key={id}>
       <defs>
         <pattern id={patId} x={x} y={y} width={spacing} height={spacing} patternUnits="userSpaceOnUse">
-          <circle cx={spacing / 2} cy={spacing / 2} r={0.4} fill="#FFFFFF" />
-        </pattern>
-      </defs>
-      <rect x={x} y={y} width={width} height={height} fill={`url(#${patId})`} />
-    </g>
-  );
-}
-
-// Hexagonal close-packed dot grid
-function renderStipple(
-  id: string,
-  density: number,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): React.ReactElement {
-  const spacing = Math.max(lmap(density, 1, 10, 20, 4), 2);
-  const rowH = spacing * Math.sqrt(3) / 2;
-  const r = Math.max(spacing * 0.18, 0.4);
-  const patId = `pat-${id}`;
-  // Two-row tile: row 0 at y=0, row 1 offset at x+s/2, y=rowH
-  return (
-    <g key={id}>
-      <defs>
-        <pattern
-          id={patId}
-          x={x}
-          y={y}
-          width={spacing}
-          height={rowH * 2}
-          patternUnits="userSpaceOnUse"
-        >
-          <circle cx={0}            cy={0}    r={r} fill="#FFFFFF" />
-          <circle cx={spacing}      cy={0}    r={r} fill="#FFFFFF" />
-          <circle cx={spacing / 2}  cy={rowH} r={r} fill="#FFFFFF" />
-          <circle cx={0}            cy={rowH * 2} r={r} fill="#FFFFFF" />
-          <circle cx={spacing}      cy={rowH * 2} r={r} fill="#FFFFFF" />
+          <circle cx={spacing / 2} cy={spacing / 2} r={r} fill="#FFFFFF" />
         </pattern>
       </defs>
       <rect x={x} y={y} width={width} height={height} fill={`url(#${patId})`} />
@@ -102,21 +53,18 @@ function renderStipple(
 }
 
 function renderDiagonal(
-  id: string,
-  density: number,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
+  id: string, density: number, weight: number,
+  x: number, y: number, width: number, height: number,
 ): React.ReactElement {
   const spacing = Math.max(lmap(density, 1, 10, 30, 4), 1.5);
+  const sw = Math.max(weight * 0.55, 0.3);
   const patId = `pat-${id}`;
   return (
     <g key={id}>
       <defs>
         <pattern id={patId} x={x} y={y} width={spacing} height={spacing} patternUnits="userSpaceOnUse">
-          <line x1={-spacing} y1={spacing} x2={spacing} y2={-spacing} stroke="#FFFFFF" strokeWidth={0.4} />
-          <line x1={0} y1={spacing * 2} x2={spacing * 2} y2={0} stroke="#FFFFFF" strokeWidth={0.4} />
+          <line x1={-spacing} y1={spacing} x2={spacing} y2={-spacing} stroke="#FFFFFF" strokeWidth={sw} />
+          <line x1={0} y1={spacing * 2} x2={spacing * 2} y2={0} stroke="#FFFFFF" strokeWidth={sw} />
         </pattern>
       </defs>
       <rect x={x} y={y} width={width} height={height} fill={`url(#${patId})`} />
@@ -125,23 +73,20 @@ function renderDiagonal(
 }
 
 function renderCrossHatch(
-  id: string,
-  density: number,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
+  id: string, density: number, weight: number,
+  x: number, y: number, width: number, height: number,
 ): React.ReactElement {
   const spacing = Math.max(lmap(density, 1, 10, 30, 4), 1.5);
+  const sw = Math.max(weight * 0.55, 0.3);
   const patId = `pat-${id}`;
   return (
     <g key={id}>
       <defs>
         <pattern id={patId} x={x} y={y} width={spacing} height={spacing} patternUnits="userSpaceOnUse">
-          <line x1={-spacing} y1={spacing}     x2={spacing}     y2={-spacing}    stroke="#FFFFFF" strokeWidth={0.4} />
-          <line x1={0}        y1={spacing * 2} x2={spacing * 2} y2={0}           stroke="#FFFFFF" strokeWidth={0.4} />
-          <line x1={0}        y1={0}           x2={spacing * 2} y2={spacing * 2} stroke="#FFFFFF" strokeWidth={0.4} />
-          <line x1={-spacing} y1={0}           x2={spacing}     y2={spacing * 2} stroke="#FFFFFF" strokeWidth={0.4} />
+          <line x1={-spacing} y1={spacing}     x2={spacing}     y2={-spacing}    stroke="#FFFFFF" strokeWidth={sw} />
+          <line x1={0}        y1={spacing * 2} x2={spacing * 2} y2={0}           stroke="#FFFFFF" strokeWidth={sw} />
+          <line x1={0}        y1={0}           x2={spacing * 2} y2={spacing * 2} stroke="#FFFFFF" strokeWidth={sw} />
+          <line x1={-spacing} y1={0}           x2={spacing}     y2={spacing * 2} stroke="#FFFFFF" strokeWidth={sw} />
         </pattern>
       </defs>
       <rect x={x} y={y} width={width} height={height} fill={`url(#${patId})`} />
@@ -149,56 +94,33 @@ function renderCrossHatch(
   );
 }
 
-function renderNoise(
-  id: string,
-  density: number,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  seed: number,
-): React.ReactElement {
-  const area = width * height;
-  const count = Math.round(lmap(density, 1, 10, 30, 300) * (area / 1000));
-  const rng = makeRng(seed ^ 0x99887766);
-  const rects: React.ReactElement[] = [];
-  for (let i = 0; i < count; i++) {
-    const rx = x + rng.next() * width;
-    const ry = y + rng.next() * height;
-    rects.push(
-      <rect key={i} x={rx} y={ry} width={1} height={1} fill="#FFFFFF" opacity={0.35} />,
-    );
-  }
-  return <g key={id}>{rects}</g>;
-}
-
 function renderWoven(
-  id: string,
-  density: number,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
+  id: string, density: number, weight: number,
+  x: number, y: number, width: number, height: number,
 ): React.ReactElement {
   const spacing = Math.max(lmap(density, 1, 10, 8, 1), 0.5);
+  const sw = Math.max(weight * 0.45, 0.25);
   const lines: React.ReactElement[] = [];
   let cy = y + spacing;
   let i = 0;
   while (cy < y + height) {
     lines.push(
-      <line key={i++} x1={x} y1={cy} x2={x + width} y2={cy} stroke="#FFFFFF" strokeWidth={0.3} />,
+      <line key={i++} x1={x} y1={cy} x2={x + width} y2={cy} stroke="#FFFFFF" strokeWidth={sw} />,
     );
     cy += spacing;
   }
   return <g key={id}>{lines}</g>;
 }
 
-export function getSwatchSVG(type: PatternType, density: number, seed: number): string {
+// ── Swatch preview (20×8px dark-background SVG string) ─────────────────────
+
+export function getSwatchSVG(type: PatternType, density: number, _seed: number): string {
   const w = 20;
   const h = 8;
+  const bg = `<rect width="${w}" height="${h}" fill="#0A0A0A"/>`;
 
   if (type === 'EMPTY') {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="none"/></svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${bg}</svg>`;
   }
 
   if (type === 'DOTS') {
@@ -206,66 +128,39 @@ export function getSwatchSVG(type: PatternType, density: number, seed: number): 
     let circles = '';
     for (let cx = spacing / 2; cx < w; cx += spacing) {
       for (let cy = spacing / 2; cy < h; cy += spacing) {
-        circles += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="0.4" fill="#FFFFFF"/>`;
+        circles += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="0.5" fill="#FFFFFF"/>`;
       }
     }
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" style="background:#050505">${circles}</svg>`;
-  }
-
-  if (type === 'STIPPLE') {
-    const spacing = Math.max(lmap(density, 1, 10, 10, 2), 1.5);
-    const rowH = spacing * Math.sqrt(3) / 2;
-    const r = Math.max(spacing * 0.18, 0.4);
-    let circles = '';
-    let row = 0;
-    for (let cy = rowH / 2; cy < h + rowH; cy += rowH, row++) {
-      const offset = (row % 2) * (spacing / 2);
-      for (let cx = offset; cx < w + spacing; cx += spacing) {
-        circles += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="#FFFFFF"/>`;
-      }
-    }
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" style="background:#050505"><defs><clipPath id="sc${seed}"><rect width="${w}" height="${h}"/></clipPath></defs><g clip-path="url(#sc${seed})">${circles}</g></svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${bg}${circles}</svg>`;
   }
 
   if (type === 'DIAGONAL') {
     const spacing = Math.max(lmap(density, 1, 10, 12, 2), 1.5);
     let lines = '';
     for (let i = -h; i < w + h; i += spacing) {
-      lines += `<line x1="${i.toFixed(1)}" y1="0" x2="${(i + h).toFixed(1)}" y2="${h}" stroke="#FFFFFF" stroke-width="0.4"/>`;
+      lines += `<line x1="${i.toFixed(1)}" y1="0" x2="${(i + h).toFixed(1)}" y2="${h}" stroke="#FFFFFF" stroke-width="0.5"/>`;
     }
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" style="background:#050505"><defs><clipPath id="dc${seed}"><rect width="${w}" height="${h}"/></clipPath></defs><g clip-path="url(#dc${seed})">${lines}</g></svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><defs><clipPath id="dc${w}"><rect width="${w}" height="${h}"/></clipPath></defs>${bg}<g clip-path="url(#dc${w})">${lines}</g></svg>`;
   }
 
   if (type === 'CROSS-HATCH') {
     const spacing = Math.max(lmap(density, 1, 10, 12, 2), 1.5);
     let lines = '';
     for (let i = -h; i < w + h; i += spacing) {
-      lines += `<line x1="${i.toFixed(1)}" y1="0" x2="${(i + h).toFixed(1)}" y2="${h}" stroke="#FFFFFF" stroke-width="0.4"/>`;
-      lines += `<line x1="${(i + h).toFixed(1)}" y1="0" x2="${i.toFixed(1)}" y2="${h}" stroke="#FFFFFF" stroke-width="0.4"/>`;
+      lines += `<line x1="${i.toFixed(1)}" y1="0" x2="${(i + h).toFixed(1)}" y2="${h}" stroke="#FFFFFF" stroke-width="0.5"/>`;
+      lines += `<line x1="${(i + h).toFixed(1)}" y1="0" x2="${i.toFixed(1)}" y2="${h}" stroke="#FFFFFF" stroke-width="0.5"/>`;
     }
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" style="background:#050505"><defs><clipPath id="chc${seed}"><rect width="${w}" height="${h}"/></clipPath></defs><g clip-path="url(#chc${seed})">${lines}</g></svg>`;
-  }
-
-  if (type === 'NOISE') {
-    const rng = makeRng(seed ^ 0x99887766);
-    const count = Math.round(lmap(density, 1, 10, 10, 80));
-    let rects = '';
-    for (let i = 0; i < count; i++) {
-      const rx = rng.next() * w;
-      const ry = rng.next() * h;
-      rects += `<rect x="${rx.toFixed(1)}" y="${ry.toFixed(1)}" width="1" height="1" fill="#FFFFFF" opacity="0.35"/>`;
-    }
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" style="background:#050505">${rects}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><defs><clipPath id="chc${w}"><rect width="${w}" height="${h}"/></clipPath></defs>${bg}<g clip-path="url(#chc${w})">${lines}</g></svg>`;
   }
 
   if (type === 'WOVEN') {
     const spacing = Math.max(lmap(density, 1, 10, 4, 1), 0.8);
     let lines = '';
     for (let cy = spacing; cy < h; cy += spacing) {
-      lines += `<line x1="0" y1="${cy.toFixed(1)}" x2="${w}" y2="${cy.toFixed(1)}" stroke="#FFFFFF" stroke-width="0.3"/>`;
+      lines += `<line x1="0" y1="${cy.toFixed(1)}" x2="${w}" y2="${cy.toFixed(1)}" stroke="#FFFFFF" stroke-width="0.5"/>`;
     }
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" style="background:#050505">${lines}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${bg}${lines}</svg>`;
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">${bg}</svg>`;
 }

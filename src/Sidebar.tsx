@@ -332,6 +332,18 @@ export function Sidebar({
             value={config.density}
             onChange={handleDensityChange}
           />
+          <SliderRow
+            label="§ — THICKNESS"
+            min={1}
+            max={10}
+            value={config.thickness}
+            onChange={(v) => update({ thickness: v })}
+          />
+          <Toggle
+            label="§ — VARIABLE WEIGHT"
+            value={config.variableWeight}
+            onChange={(v) => update({ variableWeight: v })}
+          />
 
           {/* Pattern Assignment */}
           <div style={{ padding: '6px 0' }}>
