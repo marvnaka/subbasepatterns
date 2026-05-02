@@ -18,6 +18,7 @@ export const PATTERN_TYPES: PatternType[] = [
 ];
 
 export type FormatType = 'SQUARE' | 'LANDSCAPE';
+export type ViewMode = '2D' | 'ISO';
 
 export interface StrataConfig {
   seed: number;
@@ -27,6 +28,8 @@ export interface StrataConfig {
   density: number;     // 1–10
   patternAssignment: PatternType[];
   lineOpacity: number;   // 50–100
+  viewMode: ViewMode;
+  extrusion: number;   // 1–10, ISO only
   showDepthNumbers: boolean;
   accentLayerEnabled: boolean;
   accentLayerIndex: number; // 0-based

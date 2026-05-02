@@ -3,6 +3,7 @@ import type { StrataConfig, PatternType, PresetName } from './types';
 import { PATTERN_TYPES } from './types';
 import { Sidebar } from './Sidebar';
 import { StrataCanvas, exportSVGString } from './StrataCanvas';
+import { IsoCanvas, exportISOSVGString } from './IsoCanvas';
 import { PRESETS } from './presets';
 import { makeRng } from './prng';
 
@@ -24,6 +25,8 @@ function getInitialConfig(): StrataConfig {
     density: 5,
     patternAssignment: initPatternAssignment(layers, seed),
     lineOpacity: 100,
+    viewMode: '2D',
+    extrusion: 5,
     showDepthNumbers: true,
     accentLayerEnabled: false,
     accentLayerIndex: 0,
@@ -31,25 +34,36 @@ function getInitialConfig(): StrataConfig {
   };
 }
 
-function getCanvasDimensions(format: 'SQUARE' | 'LANDSCAPE', containerWidth: number, containerHeight: number) {
+function getCanvasDimensions(
+  format: 'SQUARE' | 'LANDSCAPE',
+  containerWidth: number,
+  containerHeight: number,
+) {
   if (format === 'SQUARE') {
     const size = Math.min(containerWidth, containerHeight);
     return { width: size, height: size };
   }
-  const fromWidth = { w: containerWidth, h: Math.round(containerWidth * 9 / 16) };
+  const fromWidth  = { w: containerWidth,  h: Math.round(containerWidth  * 9 / 16) };
   const fromHeight = { w: Math.round(containerHeight * 16 / 9), h: containerHeight };
-  if (fromWidth.h <= containerHeight) {
-    return { width: fromWidth.w, height: fromWidth.h };
-  }
-  return { width: fromHeight.w, height: fromHeight.h };
+  if (fromWidth.h <= containerHeight) return { width: fromWidth.w,  height: fromWidth.h  };
+  return                                      { width: fromHeight.w, height: fromHeight.h };
+}
+
+function downloadBlob(url: string, filename: string) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function App() {
-  const [config, setConfig] = useState<StrataConfig>(getInitialConfig);
+  const [config, setConfig]           = useState<StrataConfig>(getInitialConfig);
   const [activePreset, setActivePreset] = useState<PresetName | null>(null);
   const [containerSize, setContainerSize] = useState({ width: 800, height: 600 });
   const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
+  const flatSvgRef   = useRef<SVGSVGElement>(null);
+  const isoSvgRef    = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -69,9 +83,15 @@ export default function App() {
     [config.format, containerSize],
   );
 
+  // Composition + appearance changes — clears active preset highlight.
   const handleChange = useCallback((next: StrataConfig) => {
     setConfig(next);
     setActivePreset(null);
+  }, []);
+
+  // View-only changes (viewMode, extrusion) — preserve preset highlight.
+  const handleViewChange = useCallback((changes: Partial<StrataConfig>) => {
+    setConfig(prev => ({ ...prev, ...changes }));
   }, []);
 
   const handlePreset = useCallback((name: PresetName) => {
@@ -90,27 +110,26 @@ export default function App() {
   }, []);
 
   const handleExportSVG = useCallback(() => {
-    const svgStr = exportSVGString(config, canvasWidth, canvasHeight);
+    const svgStr = config.viewMode === 'ISO'
+      ? exportISOSVGString(config, canvasWidth, canvasHeight)
+      : exportSVGString(config, canvasWidth, canvasHeight);
     const blob = new Blob([svgStr], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `subbase-strata-${config.seed}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(URL.createObjectURL(blob), `subbase-strata-${config.seed}.svg`);
   }, [config, canvasWidth, canvasHeight]);
 
   const handleExportPNG = useCallback(() => {
     const scale = 2;
     const w = canvasWidth * scale;
     const h = canvasHeight * scale;
-    const svgStr = exportSVGString(config, w, h);
+    const svgStr = config.viewMode === 'ISO'
+      ? exportISOSVGString(config, w, h)
+      : exportSVGString(config, w, h);
     const blob = new Blob([svgStr], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = w;
+      canvas.width  = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
@@ -118,12 +137,7 @@ export default function App() {
       URL.revokeObjectURL(url);
       canvas.toBlob((pngBlob) => {
         if (!pngBlob) return;
-        const pngUrl = URL.createObjectURL(pngBlob);
-        const a = document.createElement('a');
-        a.href = pngUrl;
-        a.download = `subbase-strata-${config.seed}.png`;
-        a.click();
-        URL.revokeObjectURL(pngUrl);
+        downloadBlob(URL.createObjectURL(pngBlob), `subbase-strata-${config.seed}.png`);
       }, 'image/png');
     };
     img.src = url;
@@ -143,6 +157,7 @@ export default function App() {
         config={config}
         activePreset={activePreset}
         onChange={handleChange}
+        onViewChange={handleViewChange}
         onPreset={handlePreset}
         onExportSVG={handleExportSVG}
         onExportPNG={handleExportPNG}
@@ -159,12 +174,21 @@ export default function App() {
           overflow: 'hidden',
         }}
       >
-        <StrataCanvas
-          ref={svgRef}
-          config={config}
-          canvasWidth={canvasWidth}
-          canvasHeight={canvasHeight}
-        />
+        {config.viewMode === 'ISO' ? (
+          <IsoCanvas
+            ref={isoSvgRef}
+            config={config}
+            canvasWidth={canvasWidth}
+            canvasHeight={canvasHeight}
+          />
+        ) : (
+          <StrataCanvas
+            ref={flatSvgRef}
+            config={config}
+            canvasWidth={canvasWidth}
+            canvasHeight={canvasHeight}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import type { StrataConfig, PresetName, FormatType } from './types';
+import type { StrataConfig, PresetName, FormatType, ViewMode } from './types';
 import { PATTERN_TYPES } from './types';
 import { PRESET_NAMES } from './presets';
 import { getSwatchSVG } from './patterns';
@@ -10,6 +10,7 @@ interface SidebarProps {
   config: StrataConfig;
   activePreset: PresetName | null;
   onChange: (next: StrataConfig) => void;
+  onViewChange: (changes: Partial<StrataConfig>) => void;
   onPreset: (name: PresetName) => void;
   onExportSVG: () => void;
   onExportPNG: () => void;
@@ -153,6 +154,7 @@ export function Sidebar({
   config,
   activePreset,
   onChange,
+  onViewChange,
   onPreset,
   onExportSVG,
   onExportPNG,
@@ -389,6 +391,45 @@ export function Sidebar({
             value={config.lineOpacity}
             onChange={(v) => update({ lineOpacity: v })}
           />
+          {/* § 10 — VIEW MODE */}
+          <div style={{ padding: '8px 12px', borderBottom: BORDER }}>
+            <span style={{ ...LABEL_STYLE, display: 'block', marginBottom: 6 }}>§ 10 — VIEW MODE</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {(['2D', 'ISO'] as ViewMode[]).map((m) => {
+                const active = config.viewMode === m;
+                return (
+                  <button
+                    key={m}
+                    onClick={() => onViewChange({ viewMode: m })}
+                    style={{
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontSize: 9,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase' as const,
+                      color: active ? '#C8C8C0' : '#3A3A3A',
+                      background: 'none',
+                      border: `0.5px solid ${active ? '#3A3A3A' : '#1C1C1C'}`,
+                      padding: '3px 14px',
+                      cursor: 'pointer',
+                      borderRadius: 0,
+                    }}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {/* § 11 — EXTRUSION (ISO only) */}
+          {config.viewMode === 'ISO' && (
+            <SliderRow
+              label="§ 11 — EXTRUSION"
+              min={1}
+              max={10}
+              value={config.extrusion}
+              onChange={(v) => onViewChange({ extrusion: v })}
+            />
+          )}
           <Toggle
             label="§ 06 — DEPTH NUMBERS"
             value={config.showDepthNumbers}
