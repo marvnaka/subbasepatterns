@@ -48,6 +48,11 @@ export const IsoCanvas = React.forwardRef<SVGSVGElement, IsoCanvasProps>(
     );
 
     const totalY = gaps.reduce((a, b) => a + b, 0);
+
+    const screenW = (W + E) * ISO_R;
+    const screenH = totalY + (W + E) * ISO_S;
+    const fitScale = Math.min(1, (canvasWidth * 0.90) / screenW, (canvasHeight * 0.90) / screenH);
+
     const ox = canvasWidth  / 2 - (W - E) * ISO_R / 2;
     const oy = canvasHeight / 2 + (totalY - (W + E) * ISO_S) / 2;
 
@@ -129,7 +134,9 @@ export const IsoCanvas = React.forwardRef<SVGSVGElement, IsoCanvasProps>(
       <svg ref={ref} xmlns="http://www.w3.org/2000/svg"
         width={canvasWidth} height={canvasHeight} style={{ display: 'block' }}>
         <rect width={canvasWidth} height={canvasHeight} fill="#050505" />
-        <g opacity={opacity}>{blockEls}</g>
+        <g transform={`translate(${canvasWidth / 2},${canvasHeight / 2}) scale(${fitScale}) translate(${-canvasWidth / 2},${-canvasHeight / 2})`}>
+          <g opacity={opacity}>{blockEls}</g>
+        </g>
       </svg>
     );
   },
@@ -157,6 +164,10 @@ export function exportISOSVGString(
 
   const { gaps, depthLabels } = calculateLayerPositions(layers, depth, tension, seed, canvasHeight);
   const totalY = gaps.reduce((a, b) => a + b, 0);
+
+  const screenW = (W + E) * ISO_R;
+  const screenH = totalY + (W + E) * ISO_S;
+  const fitScale = Math.min(1, (canvasWidth * 0.90) / screenW, (canvasHeight * 0.90) / screenH);
 
   const ox = canvasWidth  / 2 - (W - E) * ISO_R / 2;
   const oy = canvasHeight / 2 + (totalY - (W + E) * ISO_S) / 2;
@@ -270,7 +281,9 @@ export function exportISOSVGString(
 <svg xmlns="http://www.w3.org/2000/svg" width="${canvasWidth}" height="${canvasHeight}" viewBox="0 0 ${canvasWidth} ${canvasHeight}">
   <rect width="${canvasWidth}" height="${canvasHeight}" fill="none"/>
   <defs>${defs}</defs>
-  <g opacity="${opacity}">${body}</g>
+  <g transform="translate(${canvasWidth / 2},${canvasHeight / 2}) scale(${fitScale}) translate(${-canvasWidth / 2},${-canvasHeight / 2})">
+    <g opacity="${opacity}">${body}</g>
+  </g>
   ${labels}
 </svg>`;
 }
